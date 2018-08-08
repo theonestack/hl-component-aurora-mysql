@@ -10,7 +10,7 @@
 $ gem install cfhighlander
 
 # build and validate standalone component
-$ cfhighlander cfcompile --validate ecs
+$ cfhighlander cfcompile --validate aurora2-mysql
 
 ```
 
