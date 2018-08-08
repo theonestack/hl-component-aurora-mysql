@@ -3,7 +3,7 @@ CloudFormation do
   Description "#{component_name} - #{component_version}"
 
   Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
-  az_conditions_resources('SubnetData', maximum_availability_zones)
+  az_conditions_resources('SubnetPersistence', maximum_availability_zones)
 
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
@@ -14,12 +14,12 @@ CloudFormation do
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
     GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
-    # SecurityGroupIngress sg_create_rules(, ip_blocks)
+    SecurityGroupIngress sg_create_rules(security_group, ip_blocks)
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'security-group' ])}]
   end
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
-    SubnetIds az_conditional_resources('SubnetData', maximum_availability_zones)
+    SubnetIds az_conditional_resources('SubnetPersistence', maximum_availability_zones)
     DBSubnetGroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'subnet group' ])
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'subnet-group' ])}]
   }

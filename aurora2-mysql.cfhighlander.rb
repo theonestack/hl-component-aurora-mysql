@@ -2,7 +2,8 @@ CfhighlanderTemplate do
   DependsOn 'vpc@1.2.0'
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
-    ComponentParam 'EnvironmentType', 'development', isGlobal: true
+    ComponentParam 'EnvironmentType', 'development', isGlobal: true, allowedValues: ['development', 'production']
+    ComponentParam 'StackOctet', isGlobal: true
     MappingParam('WriterInstanceType') do
       map 'EnvironmentType'
       attribute 'WriterInstanceType'
@@ -16,7 +17,7 @@ CfhighlanderTemplate do
       attribute 'DnsDomain'
     end
     maximum_availability_zones.times do |az|
-      ComponentParam "SubnetData#{az}"
+      ComponentParam "SubnetPersistence#{az}"
     end
     ComponentParam 'SnapshotID'
     ComponentParam 'EnableReader', 'false'
