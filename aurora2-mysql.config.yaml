@@ -1,0 +1,18 @@
+maximum_availability_zones: 5
+hostname: aurora2
+
+cluster_parameters:
+  character_set_database: latin1
+  character_set_client: latin1
+  character_set_connection: latin1
+  character_set_filesystem: latin1
+  character_set_results: latin1
+  character_set_server: latin1
+  collation_connection: latin1_general_ci
+  collation_server: latin1_general_ci
+  lower_case_table_names: '1'
+
+instance_parameters:
+  max_allowed_packet: '52428800'
+  log_bin_trust_function_creators: '1'
+  wait_timeout: '3600'
