@@ -16,3 +16,19 @@ instance_parameters:
   max_allowed_packet: '52428800'
   log_bin_trust_function_creators: '1'
   wait_timeout: '3600'
+
+# Set `ip_blocks` here or export from vpc component
+ip_blocks:
+  local:
+    - 127.0.0.1/32
+
+
+security_group:
+  -
+    rules:
+      -
+        IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+    ips:
+      - stack
