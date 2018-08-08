@@ -1,0 +1,7 @@
+EnvironmentType:
+  development:
+    WriterInstanceType: db.t2.micro
+    ReaderInstanceType: db.t2.micro
+  production:
+    WriterInstanceType: db.t2.micro
+    ReaderInstanceType: db.t2.micro
