@@ -1,5 +1,11 @@
 maximum_availability_zones: 5
+
 hostname: aurora2
+hostname_read_endpoint: aurora2-reader
+
+# Aurora Engine and family
+engine: aurora-mysql
+family: aurora-mysql5.7
 
 
 # db_name: project_db
