@@ -31,12 +31,16 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster-parameter-group' ])}]
   }
 
+
   RDS_DBCluster(:DBCluster) {
     Engine 'aurora-mysql'
+    DatabaseName db_name if defined? db_name
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
-    SnapshotIdentifier Ref(:SnapshotID)
+    SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
+    MasterUsername  FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ]) if defined? master_login
+    MasterUserPassword FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ]) if defined? master_login
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
 

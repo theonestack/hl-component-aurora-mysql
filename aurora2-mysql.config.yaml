@@ -1,6 +1,13 @@
 maximum_availability_zones: 5
 hostname: aurora2
 
+
+# db_name: project_db
+
+# master_login:
+#   username_ssm_param: /rds/AURORA_USER
+#   password_ssm_param: /rds/AURORA_MASTER_PASSWORD
+
 cluster_parameters:
   character_set_database: latin1
   character_set_client: latin1
