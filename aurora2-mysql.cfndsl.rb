@@ -39,7 +39,7 @@ CloudFormation do
     SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
-    MasterUsername  master_login['username'] if defined? master_login
+    MasterUsername  FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ]) if defined? master_login
     MasterUserPassword FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ]) if defined? master_login
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
