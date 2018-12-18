@@ -1,5 +1,5 @@
 CfhighlanderTemplate do
-  Name 'aurora-mysq'
+  Name 'aurora-mysql'
   Description "Highlander Aurora MySQL component #{component_version}"
   ComponentVersion component_version
   DependsOn 'vpc'
