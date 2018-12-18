@@ -14,7 +14,7 @@ CloudFormation do
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
     GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
-    SecurityGroupIngress sg_create_rules(security_group, ip_blocks)
+    SecurityGroupIngress sg_create_rules(security_group, ip_blocks) if defined? security_group
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'security-group' ])}]
   end
 
@@ -33,7 +33,7 @@ CloudFormation do
 
 
   RDS_DBCluster(:DBCluster) {
-    Engine 'aurora-mysql'
+    Engine engine
     DatabaseName db_name if defined? db_name
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
@@ -46,7 +46,7 @@ CloudFormation do
 
   RDS_DBParameterGroup(:DBInstanceParameterGroup) {
     Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'instance parameter group' ])
-    Family 'aurora-mysql5.7'
+    Family family
     Parameters instance_parameters if defined? instance_parameters
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'instance-parameter-group' ])}]
   }
@@ -55,7 +55,7 @@ CloudFormation do
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     DBParameterGroupName Ref(:DBInstanceParameterGroup)
     DBClusterIdentifier Ref(:DBCluster)
-    Engine 'aurora-mysql'
+    Engine engine
     PubliclyAccessible 'false'
     DBInstanceClass Ref(:WriterInstanceType)
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'writer-instance' ])}]
@@ -66,7 +66,7 @@ CloudFormation do
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     DBParameterGroupName Ref(:DBInstanceParameterGroup)
     DBClusterIdentifier Ref(:DBCluster)
-    Engine 'aurora-mysql'
+    Engine engine
     PubliclyAccessible 'false'
     DBInstanceClass Ref(:ReaderInstanceType)
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
@@ -78,6 +78,15 @@ CloudFormation do
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
+  }
+
+  Route53_RecordSet(:DBClusterReaderRecord) {
+    Condition(:EnableReader)
+    HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
+    Name FnJoin('', [ hostname_read_endpoint, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
+    Type 'CNAME'
+    TTL '60'
+    ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
   }
 
 end
