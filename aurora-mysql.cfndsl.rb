@@ -72,8 +72,6 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
   }
 
-  writer_record = defined?(dns_writer_record) ? dns_writer_record : 'aurora-mysql'
-
   Route53_RecordSet(:DBHostRecord) {
     HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
     Name FnJoin('', [ hostname, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
