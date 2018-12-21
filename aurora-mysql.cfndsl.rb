@@ -100,6 +100,15 @@ CloudFormation do
       DBInstanceClass Ref(:ReaderInstanceType)
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
     }
+
+    Route53_RecordSet(:DBClusterReaderRecord) {
+      Condition(:EnableReader)
+      HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
+      Name FnJoin('', [ hostname_read_endpoint, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
+      Type 'CNAME'
+      TTL '60'
+      ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
+    }
   end
 
   Route53_RecordSet(:DBHostRecord) {
@@ -110,12 +119,6 @@ CloudFormation do
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
   }
 
-  Route53_RecordSet(:DBClusterReaderRecord) {
-    HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
-    Name FnJoin('', [ hostname_read_endpoint, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
-    Type 'CNAME'
-    TTL '60'
-    ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
-  }
+
 
 end
