@@ -91,7 +91,6 @@ CloudFormation do
   }
 
   Route53_RecordSet(:DBClusterReaderRecord) {
-    Condition(:EnableReader)
     HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
     Name FnJoin('', [ hostname_read_endpoint, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
     Type 'CNAME'
