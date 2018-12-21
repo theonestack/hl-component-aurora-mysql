@@ -26,14 +26,22 @@ CloudFormation do
 
   RDS_DBClusterParameterGroup(:DBClusterParameterGroup) {
     Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'cluster parameter group' ])
-    Family 'aurora-mysql5.7'
+    Family family
     Parameters cluster_parameters if defined? cluster_parameters
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster-parameter-group' ])}]
   }
 
-
-  RDS_DBCluster(:DBCluster) {
+  RDS_DBCluster(:DBCluster) do
     Engine engine
+    if engine_mode == 'serverless'
+      EngineMode engine_mode
+      ScalingConfiguration({
+        AutoPause: Ref('AutoPause'),
+        MinCapacity: Ref('MinCapacity'),
+        MaxCapacity: Ref('MaxCapacity'),
+        SecondsUntilAutoPause: Ref('SecondsUntilAutoPause')
+      })
+    end
     DatabaseName db_name if defined? db_name
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
@@ -42,35 +50,37 @@ CloudFormation do
     MasterUsername  FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ]) if defined? master_login
     MasterUserPassword FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ]) if defined? master_login
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
-  }
+  end
 
-  RDS_DBParameterGroup(:DBInstanceParameterGroup) {
-    Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'instance parameter group' ])
-    Family family
-    Parameters instance_parameters if defined? instance_parameters
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'instance-parameter-group' ])}]
-  }
+  if engine_mode == 'provisioned'
+    RDS_DBParameterGroup(:DBInstanceParameterGroup) {
+      Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'instance parameter group' ])
+      Family family
+      Parameters instance_parameters if defined? instance_parameters
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'instance-parameter-group' ])}]
+    }
 
-  RDS_DBInstance(:DBClusterInstanceWriter) {
-    DBSubnetGroupName Ref(:DBClusterSubnetGroup)
-    DBParameterGroupName Ref(:DBInstanceParameterGroup)
-    DBClusterIdentifier Ref(:DBCluster)
-    Engine engine
-    PubliclyAccessible 'false'
-    DBInstanceClass Ref(:WriterInstanceType)
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'writer-instance' ])}]
-  }
+    RDS_DBInstance(:DBClusterInstanceWriter) {
+      DBSubnetGroupName Ref(:DBClusterSubnetGroup)
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
+      DBClusterIdentifier Ref(:DBCluster)
+      Engine engine
+      PubliclyAccessible 'false'
+      DBInstanceClass Ref(:WriterInstanceType)
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'writer-instance' ])}]
+    }
 
-  RDS_DBInstance(:DBClusterInstanceReader) {
-    Condition(:EnableReader)
-    DBSubnetGroupName Ref(:DBClusterSubnetGroup)
-    DBParameterGroupName Ref(:DBInstanceParameterGroup)
-    DBClusterIdentifier Ref(:DBCluster)
-    Engine engine
-    PubliclyAccessible 'false'
-    DBInstanceClass Ref(:ReaderInstanceType)
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
-  }
+    RDS_DBInstance(:DBClusterInstanceReader) {
+      Condition(:EnableReader)
+      DBSubnetGroupName Ref(:DBClusterSubnetGroup)
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
+      DBClusterIdentifier Ref(:DBCluster)
+      Engine engine
+      PubliclyAccessible 'false'
+      DBInstanceClass Ref(:ReaderInstanceType)
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
+    }
+  end
 
   Route53_RecordSet(:DBHostRecord) {
     HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])

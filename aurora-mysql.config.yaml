@@ -6,7 +6,7 @@ hostname_read_endpoint: aurora2-reader
 # Aurora Engine and family
 engine: aurora-mysql
 family: aurora-mysql5.7
-
+engine_mode: provisioned # or serverless
 
 # db_name: project_db
 
