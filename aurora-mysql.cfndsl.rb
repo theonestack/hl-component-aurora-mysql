@@ -2,7 +2,6 @@ CloudFormation do
 
   Description "#{component_name} - #{component_version}"
 
-  Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
   az_conditions_resources('SubnetPersistence', maximum_availability_zones)
 
   tags = []
@@ -73,6 +72,7 @@ CloudFormation do
   end
 
   if engine_mode == 'provisioned'
+    Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
       Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'instance parameter group' ])
       Family family
