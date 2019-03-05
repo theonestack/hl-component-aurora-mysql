@@ -46,6 +46,9 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster-parameter-group' ])}]
   }
 
+  instance_username = defined?(secrets_manager) ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ])
+  instance_password = defined?(secrets_manager) ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ])
+
   RDS_DBCluster(:DBCluster) {
     Engine engine
     DatabaseName db_name if defined? db_name
@@ -53,8 +56,8 @@ CloudFormation do
     SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
-    MasterUsername  FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ]) if defined? master_login
-    MasterUserPassword FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ]) if defined? master_login
+    MasterUsername  instance_username
+    MasterUserPassword instance_password
     StorageEncrypted storage_encrypted if defined? storage_encrypted
     KmsKeyId kms_key_id if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
