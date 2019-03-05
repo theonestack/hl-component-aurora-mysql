@@ -16,6 +16,13 @@ CloudFormation do
     GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
     SecurityGroupIngress sg_create_rules(security_group, ip_blocks) if defined? security_group
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'security-group' ])}]
+    Metadata({
+      cfn_nag: {
+        rules_to_suppress: [
+          { id: 'F1000', reason: 'plan is to remove these security groups or make them conditional' }
+        ]
+      }
+    })
   end
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
