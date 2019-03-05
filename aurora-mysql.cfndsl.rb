@@ -11,6 +11,14 @@ CloudFormation do
 
   extra_tags.each { |key,value| tags << { Key: key, Value: value } } if defined? extra_tags
 
+  SecretsManager_Secret(:SecretCredentials) do
+    GenerateSecretString ({
+      SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
+      GenerateStringKey: "password",
+      ExcludeCharacters: "\"@/\\"
+    })
+  end if defined? secrets_manager
+
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
     GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
@@ -37,7 +45,6 @@ CloudFormation do
     Parameters cluster_parameters if defined? cluster_parameters
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster-parameter-group' ])}]
   }
-
 
   RDS_DBCluster(:DBCluster) {
     Engine engine
