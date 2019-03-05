@@ -41,6 +41,8 @@ CloudFormation do
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
     MasterUsername  FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ]) if defined? master_login
     MasterUserPassword FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ]) if defined? master_login
+    StorageEncrypted storage_encrypted if defined? storage_encrypted
+    KmsKeyId kms_key_id if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
 

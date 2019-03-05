@@ -1,0 +1,6 @@
+test_metadata:
+  type: config
+  name: enable storage encrypted
+  description: If you specify storage_encrypted without also specifying kms_key_id, the default amazon master key is used.
+
+storage_encrypted: true
