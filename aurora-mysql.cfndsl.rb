@@ -18,7 +18,7 @@ CloudFormation do
     GenerateSecretString ({
       SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
       GenerateStringKey: "password",
-      ExcludeCharacters: "\"@/\\"
+      ExcludeCharacters: "\"@'`/\\"
     })
   end if defined? secrets_manager
 
