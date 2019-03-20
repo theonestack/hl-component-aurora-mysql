@@ -22,6 +22,8 @@ CfhighlanderTemplate do
       ComponentParam 'SecondsUntilAutoPause', 3600
     end
 
+    ComponentParam 'EnableReader', 'false'
+    ComponentParam 'KmsKeyId'
     ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
     maximum_availability_zones.times do |az|
       ComponentParam "SubnetPersistence#{az}"
