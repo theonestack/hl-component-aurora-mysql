@@ -4,6 +4,10 @@ CloudFormation do
 
   az_conditions_resources('SubnetPersistence', maximum_availability_zones)
 
+  Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
+  Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
+
+
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
@@ -61,15 +65,15 @@ CloudFormation do
     end
     DatabaseName db_name if defined? db_name
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
-    SnapshotIdentifier Ref(:SnapshotID) if !defined? master_login
+    SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
-    MasterUsername  instance_username
-    MasterUserPassword instance_password
+    MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
+    MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted if defined? storage_encrypted
     KmsKeyId kms_key_id if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
-  end
+  }
 
   if engine_mode == 'provisioned'
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))

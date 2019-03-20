@@ -1,13 +1,5 @@
 CfhighlanderTemplate do
-<<<<<<< HEAD
-  Name 'aurora-mysql'
-  Description "Highlander Aurora MySQL component #{component_version}"
-  ComponentVersion component_version
-=======
   Name 'aurora-mysq'
-  # Description "Highlander Aurora MySQL component #{component_version}"
-  # ComponentVersion component_version
->>>>>>> adds support for aurora serverless
   DependsOn 'vpc'
 
   Parameters do

@@ -1,0 +1,8 @@
+test_metadata:
+  type: config
+  name: aurora serverless
+  description: creates an aurora serverless cluster
+
+engine: aurora
+engine_mode: serverless
+family:  aurora5.6
