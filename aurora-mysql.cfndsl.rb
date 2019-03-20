@@ -59,7 +59,7 @@ CloudFormation do
     MasterUsername  instance_username
     MasterUserPassword instance_password
     StorageEncrypted storage_encrypted if defined? storage_encrypted
-    KmsKeyId kms_key_id if defined? kms_key_id
+    KmsKeyId Ref('KmsKeyId') if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
 
