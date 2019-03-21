@@ -18,7 +18,7 @@ CloudFormation do
     GenerateSecretString ({
       SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
       GenerateStringKey: "password",
-      ExcludeCharacters: "\"@/\\"
+      ExcludeCharacters: "\"@'`/\\"
     })
   end if defined? secrets_manager
 
@@ -71,7 +71,7 @@ CloudFormation do
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted if defined? storage_encrypted
-    KmsKeyId kms_key_id if defined? kms_key_id
+    KmsKeyId Ref('KmsKeyId') if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
 

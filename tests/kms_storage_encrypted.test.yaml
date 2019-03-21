@@ -4,4 +4,4 @@ test_metadata:
   description: If you specify kms_key_id you must also specify storage_encrypted
 
 storage_encrypted: true
-kms_key_id: '<ARN OF YOUR CHOSEN CMK>'
+kms_key_id: true

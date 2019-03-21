@@ -22,6 +22,7 @@ CfhighlanderTemplate do
       ComponentParam 'SecondsUntilAutoPause', 3600
     end
 
+    ComponentParam 'KmsKeyId' if defined? kms_key_id
     ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
     maximum_availability_zones.times do |az|
       ComponentParam "SubnetPersistence#{az}"
