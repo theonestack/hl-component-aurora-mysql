@@ -22,6 +22,61 @@ CloudFormation do
     })
   end if defined? secrets_manager
 
+  if defined? kms_key_id
+    case kms_key_id
+    when true
+      kms_key = Ref('KmsKeyId')
+    when 'create'
+      kms_key = FnGetAtt('KmsKey', 'Arn')
+      KMS_Key(:KmsKey) do
+        Description 'KMS key for aurora'
+        KeyPolicy({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Sid: "Allow administration of the key",
+              Effect: "Allow",
+              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:user/root")},
+              Action: ([
+                "kms:Create*",
+                "kms:Describe*",
+                "kms:Enable*",
+                "kms:List*",
+                "kms:Put*",
+                "kms:Update*",
+                "kms:Revoke*",
+                "kms:Disable*",
+                "kms:Get*",
+                "kms:Delete*",
+                "kms:ScheduleKeyDeletion",
+                "kms:CancelKeyDeletion"
+              ]),
+              Resource: "*"
+            },
+            {
+              Sid: "Allow use of the key",
+              Effect: "Allow",
+              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS")},
+              Condition: {
+                StringEquals: {
+                  "kms:ViaService": FnSub("rds.${AWS::Region}.amazonaws.com")
+                }
+              },
+              Action: ([
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ]),
+              Resource: "*"
+            }
+          ]
+        })
+      end
+    end
+  end
+
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
     GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
@@ -71,7 +126,7 @@ CloudFormation do
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted if defined? storage_encrypted
-    KmsKeyId Ref('KmsKeyId') if defined? kms_key_id
+    KmsKeyId kms_key if defined? kms_key_id
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
   }
 

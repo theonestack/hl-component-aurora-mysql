@@ -1,0 +1,7 @@
+test_metadata:
+  type: config
+  name: create kms key
+  description: If kms_key_id is set to create
+
+storage_encrypted: true
+kms_key_id: 'create'
