@@ -36,8 +36,7 @@ CloudFormation do
             {
               Sid: "Allow administration of the key",
               Effect: "Allow",
-              #Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:user/root")},
-              Principal: {AWS: "*"},
+              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:root")},
               Action: ([
                 "kms:Create*",
                 "kms:Describe*",
@@ -57,8 +56,7 @@ CloudFormation do
             {
               Sid: "Allow use of the key",
               Effect: "Allow",
-              #Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS")},
-              Principal: {AWS: "*"},
+              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS")},
               Condition: {
                 StringEquals: {
                   "kms:ViaService": FnSub("rds.${AWS::Region}.amazonaws.com")
