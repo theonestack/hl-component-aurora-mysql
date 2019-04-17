@@ -28,6 +28,12 @@ CloudFormation do
     kms_key = Ref('KmsKeyId')
   when 'create'
     kms_key = FnGetAtt('KmsKey', 'Arn')
+
+    KMS_Alias(:KmsAlias) do
+      AliasName FnSub("alias/${EnvironmentName}-${DnsDomain}-aurora-mysql")
+      TargetKeyId Ref('KmsKey')
+    end
+
     KMS_Key(:KmsKey) do
       Description 'KMS key for aurora'
       DeletionPolicy 'Retain'
@@ -76,6 +82,7 @@ CloudFormation do
         ]
       })
     end
+
   end if defined? kms_key_id
 
   EC2_SecurityGroup(:SecurityGroup) do
