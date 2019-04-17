@@ -22,60 +22,61 @@ CloudFormation do
     })
   end if defined? secrets_manager
 
-  if defined? kms_key_id
-    case kms_key_id
-    when true
-      kms_key = Ref('KmsKeyId')
-    when 'create'
-      kms_key = FnGetAtt('KmsKey', 'Arn')
-      KMS_Key(:KmsKey) do
-        Description 'KMS key for aurora'
-        KeyPolicy({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Sid: "Allow administration of the key",
-              Effect: "Allow",
-              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:root")},
-              Action: ([
-                "kms:Create*",
-                "kms:Describe*",
-                "kms:Enable*",
-                "kms:List*",
-                "kms:Put*",
-                "kms:Update*",
-                "kms:Revoke*",
-                "kms:Disable*",
-                "kms:Get*",
-                "kms:Delete*",
-                "kms:ScheduleKeyDeletion",
-                "kms:CancelKeyDeletion"
-              ]),
-              Resource: "*"
+
+  case kms_key_id
+  when true
+    kms_key = Ref('KmsKeyId')
+  when 'create'
+    kms_key = FnGetAtt('KmsKey', 'Arn')
+    KMS_Key(:KmsKey) do
+      Description 'KMS key for aurora'
+      DeletionPolicy 'Retain'
+      PendingWindowInDays defined?(key_deletion_time) ? key_deletion_time : 7
+      KeyPolicy({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "Allow administration of the key",
+            Effect: "Allow",
+            Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:root")},
+            Action: ([
+              "kms:Create*",
+              "kms:Describe*",
+              "kms:Enable*",
+              "kms:List*",
+              "kms:Put*",
+              "kms:Update*",
+              "kms:Revoke*",
+              "kms:Disable*",
+              "kms:Get*",
+              "kms:Delete*",
+              "kms:ScheduleKeyDeletion",
+              "kms:CancelKeyDeletion"
+            ]),
+            Resource: "*"
+          },
+          {
+            Sid: "Allow use of the key",
+            Effect: "Allow",
+            Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS")},
+            Condition: {
+              StringEquals: {
+                "kms:ViaService": FnSub("rds.${AWS::Region}.amazonaws.com")
+              }
             },
-            {
-              Sid: "Allow use of the key",
-              Effect: "Allow",
-              Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS")},
-              Condition: {
-                StringEquals: {
-                  "kms:ViaService": FnSub("rds.${AWS::Region}.amazonaws.com")
-                }
-              },
-              Action: ([
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:DescribeKey"
-              ]),
-              Resource: "*"
-            }
-          ]
-        })
-      end
+            Action: ([
+              "kms:Encrypt",
+              "kms:Decrypt",
+              "kms:ReEncrypt*",
+              "kms:GenerateDataKey*",
+              "kms:DescribeKey"
+            ]),
+            Resource: "*"
+          }
+        ]
+      })
     end
-  end
+  end if defined? kms_key_id
 
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
