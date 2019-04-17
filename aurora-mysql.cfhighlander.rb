@@ -23,6 +23,7 @@ CfhighlanderTemplate do
     end
 
     ComponentParam 'KmsKeyId' if (defined?(kms_key_id) && kms_key_id == true)
+    ComponentParam 'ProjectName' if (defined?(kms_key_id) && kms_key_id == 'create')
     ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
     maximum_availability_zones.times do |az|
       ComponentParam "SubnetPersistence#{az}"

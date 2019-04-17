@@ -30,7 +30,7 @@ CloudFormation do
     kms_key = FnGetAtt('KmsKey', 'Arn')
 
     KMS_Alias(:KmsAlias) do
-      AliasName FnSub("alias/${EnvironmentName}-${DnsDomain}-aurora-mysql")
+      AliasName FnSub("alias/${EnvironmentName}-${ProjectName}aurora-mysql")
       TargetKeyId Ref('KmsKey')
     end
 
