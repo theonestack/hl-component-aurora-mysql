@@ -64,9 +64,10 @@ CloudFormation do
           {
             Sid: "Allow use of the key",
             Effect: "Allow",
-            Principal: {"AWS": FnSub("arn:aws:iam::${AWS::AccountId}:role/*")},
+            Principal: {"AWS": "*"},
             Condition: {
               StringEquals: {
+                "kms:CallerAccount": FnSub("${AWS::AccountId}"),
                 "kms:ViaService": FnSub("rds.${AWS::Region}.amazonaws.com")
               }
             },
