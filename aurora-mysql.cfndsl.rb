@@ -14,13 +14,19 @@ CloudFormation do
 
   extra_tags.each { |key,value| tags << { Key: key, Value: value } } if defined? extra_tags
 
-  SecretsManager_Secret(:SecretCredentials) do
-    GenerateSecretString ({
-      SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
-      GenerateStringKey: "password",
-      ExcludeCharacters: "\"@'`/\\"
-    })
-  end if defined? secrets_manager
+  if defined? secrets_manager
+    SecretsManager_Secret(:SecretCredentials) do
+      GenerateSecretString ({
+        SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
+        GenerateStringKey: "password",
+        ExcludeCharacters: "\"@'`/\\"
+      })
+    end
+    Output(:SecretCredentials) {
+      Value(Ref(:SecretCredentials))
+      Export FnSub("${EnvironmentName}-#{component_name}-Secret")
+    }
+  end
 
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
