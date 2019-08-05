@@ -6,7 +6,7 @@ CfhighlanderTemplate do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
     ComponentParam 'EnvironmentType', 'development', isGlobal: true, allowedValues: ['development', 'production']
     ComponentParam 'StackOctet', isGlobal: true
-    ComponentParam 'NetworkPrefix', isGlobal: true
+    ComponentParam 'NetworkPrefix', '10', isGlobal: true
     ComponentParam 'DnsDomain'
     ComponentParam 'SnapshotID'
 
