@@ -6,3 +6,4 @@ test_metadata:
 engine: aurora
 engine_mode: serverless
 family:  aurora5.6
+storage_encrypted: true
