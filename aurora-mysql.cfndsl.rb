@@ -2,8 +2,6 @@ CloudFormation do
 
   Description "#{component_name} - #{component_version}"
 
-  az_conditions_resources('SubnetPersistence', maximum_availability_zones)
-
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
 
@@ -43,7 +41,7 @@ CloudFormation do
   end
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
-    SubnetIds az_conditional_resources('SubnetPersistence', maximum_availability_zones)
+    SubnetIds Ref(:SubnetIds)
     DBSubnetGroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'subnet group' ])
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'subnet-group' ])}]
   }
