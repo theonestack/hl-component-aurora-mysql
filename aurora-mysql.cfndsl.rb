@@ -1,6 +1,6 @@
 CloudFormation do
 
-  Description "#{component_name} - #{component_version}"
+  Description "#{external_parameters[:component_name]} - #{external_parameters[:component_version]}"
 
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
@@ -10,27 +10,32 @@ CloudFormation do
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
 
-  extra_tags.each { |key,value| tags << { Key: key, Value: value } } if defined? extra_tags
+  extra_tags = external_parameters.fetch(:extra_tags, {})
+  extra_tags.each { |key,value| tags << { Key: key, Value: value } }
 
-  if defined? secrets_manager
+  secrets_manager = external_parameters.fetch(:secrets_manager, false)
+  if secrets_manager
     SecretsManager_Secret(:SecretCredentials) do
       GenerateSecretString ({
-        SecretStringTemplate: "{\"username\":\"#{secret_username}\"}",
+        SecretStringTemplate: "{\"username\":\"#{external_parameters[:secret_username]}\"}",
         GenerateStringKey: "password",
         ExcludeCharacters: "\"@'`/\\"
       })
     end
     Output(:SecretCredentials) {
       Value(Ref(:SecretCredentials))
-      Export FnSub("${EnvironmentName}-#{component_name}-Secret")
+      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-Secret")
     }
   end
 
+
+  security_group = external_parameters.fetch(:security_group, [])
+  ip_blocks = external_parameters.fetch(:ip_blocks, [])
   EC2_SecurityGroup(:SecurityGroup) do
     VpcId Ref('VPCId')
-    GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'security group' ])
-    SecurityGroupIngress sg_create_rules(security_group, ip_blocks) if defined? security_group
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'security-group' ])}]
+    GroupDescription FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'security group' ])
+    SecurityGroupIngress sg_create_rules(security_group, ip_blocks) if (!security_group.empty? && !ip_blocks.empty?)
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'security-group' ])}]
     Metadata({
       cfn_nag: {
         rules_to_suppress: [
@@ -42,24 +47,27 @@ CloudFormation do
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
     SubnetIds Ref(:SubnetIds)
-    DBSubnetGroupDescription FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'subnet group' ])
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'subnet-group' ])}]
+    DBSubnetGroupDescription FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'subnet group' ])
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'subnet-group' ])}]
   }
 
   RDS_DBClusterParameterGroup(:DBClusterParameterGroup) {
-    Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'cluster parameter group' ])
-    Family family
-    Parameters cluster_parameters if defined? cluster_parameters
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster-parameter-group' ])}]
+    Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster parameter group' ])
+    Family external_parameters[:family]
+    Parameters external_parameters[:cluster_parameters]
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster-parameter-group' ])}]
   }
 
-  instance_username = defined?(secrets_manager) ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', master_login['username_ssm_param'], ':1}}' ])
-  instance_password = defined?(secrets_manager) ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', master_login['password_ssm_param'], ':1}}' ])
+  db_name = external_parameters.fetch(:db_name, '')
+  storage_encrypted = external_parameters.fetch(:storage_encrypted, false)
+  kms = external_parameters.fetch(:kms_key_id, false)
+  instance_username = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', external_parameters[:master_login]['username_ssm_param'], ':1}}' ])
+  instance_password = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', external_parameters[:master_login]['password_ssm_param'], ':1}}' ])
 
   RDS_DBCluster(:DBCluster) {
-    Engine engine
-    if engine_mode == 'serverless'
-      EngineMode engine_mode
+    Engine external_parameters[:engine]
+    if external_parameters[:engine_mode] == 'serverless'
+      EngineMode external_parameters[:engine_mode]
       ScalingConfiguration({
         AutoPause: Ref('AutoPause'),
         MinCapacity: Ref('MinCapacity'),
@@ -67,35 +75,35 @@ CloudFormation do
         SecondsUntilAutoPause: Ref('SecondsUntilAutoPause')
       })
     end
-    DatabaseName db_name if defined? db_name
+    DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
     DBSubnetGroupName Ref(:DBClusterSubnetGroup)
     VpcSecurityGroupIds [ Ref(:SecurityGroup) ]
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
-    StorageEncrypted storage_encrypted if defined? storage_encrypted
-    KmsKeyId Ref('KmsKeyId') if defined? kms_key_id
-    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'cluster' ])}]
+    StorageEncrypted storage_encrypted
+    KmsKeyId Ref('KmsKeyId') if kms
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
   }
 
-  if engine_mode == 'provisioned'
+  if external_parameters[:engine_mode] == 'provisioned'
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
-      Description FnJoin(' ', [ Ref(:EnvironmentName), component_name, 'instance parameter group' ])
-      Family family
-      Parameters instance_parameters if defined? instance_parameters
-      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'instance-parameter-group' ])}]
+      Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
+      Family external_parameters[:family]
+      Parameters external_parameters[:instance_parameters]
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
     }
 
     RDS_DBInstance(:DBClusterInstanceWriter) {
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       DBClusterIdentifier Ref(:DBCluster)
-      Engine engine
+      Engine external_parameters[:engine]
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:WriterInstanceType)
-      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'writer-instance' ])}]
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
     }
 
     RDS_DBInstance(:DBClusterInstanceReader) {
@@ -103,16 +111,16 @@ CloudFormation do
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       DBClusterIdentifier Ref(:DBCluster)
-      Engine engine
+      Engine external_parameters[:engine]
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:ReaderInstanceType)
-      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'reader-instance' ])}]
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
     }
 
     Route53_RecordSet(:DBClusterReaderRecord) {
       Condition(:EnableReader)
       HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
-      Name FnJoin('', [ hostname_read_endpoint, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
       Type 'CNAME'
       TTL '60'
       ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
@@ -121,7 +129,7 @@ CloudFormation do
 
   Route53_RecordSet(:DBHostRecord) {
     HostedZoneName FnJoin('', [ Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.'])
-    Name FnJoin('', [ hostname, '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
+    Name FnJoin('', [ external_parameters[:hostname], '.', Ref('EnvironmentName'), '.', Ref('DnsDomain'), '.' ])
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
