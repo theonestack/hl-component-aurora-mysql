@@ -13,11 +13,11 @@ CloudFormation do
   extra_tags = external_parameters.fetch(:extra_tags, {})
   extra_tags.each { |key,value| tags << { Key: key, Value: value } }
 
-  secrets_manager = external_parameters.fetch(:secrets_manager, false)
+  secrets_manager = external_parameters.fetch(:secret_username, false)
   if secrets_manager
     SecretsManager_Secret(:SecretCredentials) do
       GenerateSecretString ({
-        SecretStringTemplate: "{\"username\":\"#{external_parameters[:secret_username]}\"}",
+        SecretStringTemplate: "{\"username\":\"#{secrets_manager}\"}",
         GenerateStringKey: "password",
         ExcludeCharacters: "\"@'`/\\"
       })
