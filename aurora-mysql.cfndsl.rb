@@ -45,6 +45,11 @@ CloudFormation do
     })
   end
 
+  Output(:SecurityGroup) {
+    Value(Ref(:SecurityGroup))
+    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-security-group")
+  }
+
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
     SubnetIds Ref(:SubnetIds)
     DBSubnetGroupDescription FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'subnet group' ])
