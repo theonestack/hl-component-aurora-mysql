@@ -71,8 +71,8 @@ CloudFormation do
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
+    EngineMode external_parameters.fetch(:engine_mode) if !external_parameters.fetch(:engine_mode).empty?
     if external_parameters[:engine_mode] == 'serverless'
-      EngineMode external_parameters[:engine_mode]
       ScalingConfiguration({
         AutoPause: Ref('AutoPause'),
         MinCapacity: Ref('MinCapacity'),
