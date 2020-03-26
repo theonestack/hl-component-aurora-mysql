@@ -1,0 +1,6 @@
+test_metadata:
+  type: config
+  name: dns format
+  description: Converts component to use dns format config
+
+dns_format: ${EnvironmentName}.${DnsDomain}
