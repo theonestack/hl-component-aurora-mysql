@@ -26,5 +26,8 @@ CfhighlanderTemplate do
     ComponentParam 'KmsKeyId' if defined? kms_key_id
     ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
     ComponentParam 'SubnetIds', type: 'CommaDelimitedList'
+
+    ComponentParam 'EnablePerformanceInsights', defined?(performance_insights) ? performance_insights : false
+    ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7
   end
 end
