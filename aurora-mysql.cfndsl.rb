@@ -4,6 +4,7 @@ CloudFormation do
 
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
+  Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
 
 
   tags = []
@@ -108,6 +109,8 @@ CloudFormation do
       Engine external_parameters[:engine]
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:WriterInstanceType)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
     }
 
@@ -119,6 +122,8 @@ CloudFormation do
       Engine external_parameters[:engine]
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:ReaderInstanceType)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
     }
 

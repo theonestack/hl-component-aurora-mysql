@@ -1,0 +1,7 @@
+test_metadata:
+  type: config
+  name: performance insights
+  description: Enables performance insights via top level param or config value
+
+performance_insights: true
+insights_retention: 31
