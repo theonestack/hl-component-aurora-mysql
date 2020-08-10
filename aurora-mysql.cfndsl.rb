@@ -69,10 +69,14 @@ CloudFormation do
   kms = external_parameters.fetch(:kms_key_id, false)
   instance_username = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', external_parameters[:master_login]['username_ssm_param'], ':1}}' ])
   instance_password = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', external_parameters[:master_login]['password_ssm_param'], ':1}}' ])
+  engine_version = external_parameters.fetch(:engine_version, nil)
+  maintenance_window = external_parameters.fetch(:maintenance_window, nil)
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineMode external_parameters[:engine_mode]
+    EngineVersion engine_version unless engine_version.nil?
+    PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     if external_parameters[:engine_mode] == 'serverless'
       ScalingConfiguration({
         AutoPause: Ref('AutoPause'),
