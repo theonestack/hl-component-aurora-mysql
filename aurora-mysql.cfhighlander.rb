@@ -1,5 +1,5 @@
 CfhighlanderTemplate do
-  Name 'aurora-mysq'
+  Name 'aurora-mysql'
   DependsOn 'vpc'
 
   Parameters do
