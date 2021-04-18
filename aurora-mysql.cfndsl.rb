@@ -183,4 +183,9 @@ CloudFormation do
     }
   end
 
+  Output(:DBClusterId) {
+    Value(Ref(:DBCluster))
+    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-dbcluster-id")
+  }
+
 end
