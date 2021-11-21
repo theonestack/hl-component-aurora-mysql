@@ -97,5 +97,5 @@ docker pull theonestack/cfhighlander
 Running the tests
 
 ```bash
-cfhighlander cftest aurora2-mysql
+cfhighlander cftest aurora-mysql
 ```
