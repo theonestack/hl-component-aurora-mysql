@@ -33,6 +33,7 @@
 
 ## Example Configuration
 ### Highlander
+```
   Component name:'database', template: 'aurora-mysql' do
     parameter name: 'DnsDomain', value: root_domain
     parameter name: 'DnsFormat', value: FnSub("${EnvironmentName}.#{root_domain}")
@@ -43,6 +44,7 @@
     parameter name: 'StackOctet', value: '80'
     parameter name: 'NamespaceId', value: cfout('servicediscovery', 'NamespaceId')
   end
+```
 
 ### Aurora MySQL Configuration
 ```
