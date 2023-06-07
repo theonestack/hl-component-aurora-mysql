@@ -24,7 +24,7 @@ cluster_parameters:
   character_set_server: latin1
   collation_connection: latin1_general_ci
   collation_server: latin1_general_ci
-  lower_case_table_names: '1'
+  #lower_case_table_names: '1'    # You may want to set this, but for mysql8 and above it isn't supported
 
 instance_parameters:
   max_allowed_packet: '52428800'
