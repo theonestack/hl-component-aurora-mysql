@@ -142,8 +142,8 @@ CloudFormation do
   end
 
   Route53_RecordSet(:DBHostRecord) {
-    HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
-    Name FnSub("#{external_parameters[:hostname]}.#{external_parameters[:dns_format]}.")
+    HostedZoneName FnJoin('', [ "#{external_parameters[:dns_format]}", '.' ])
+    Name FnJoin('', [ "#{external_parameters[:hostname]}.#{external_parameters[:dns_format]}", '.' ])
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
