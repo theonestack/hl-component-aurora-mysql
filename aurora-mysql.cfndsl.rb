@@ -133,8 +133,8 @@ CloudFormation do
 
     Route53_RecordSet(:DBClusterReaderRecord) {
       Condition(:EnableReader)
-      HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
-      Name FnSub("#{external_parameters[:hostname_read_endpoint]}.#{external_parameters[:dns_format]}.")
+      HostedZoneName FnJoin('', [ "#{external_parameters[:dns_format]}", '.' ])
+      Name FnJoin('', [ "#{external_parameters[:hostname_read_endpoint]}.#{external_parameters[:dns_format]}", '.' ])
       Type 'CNAME'
       TTL '60'
       ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
