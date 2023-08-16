@@ -134,7 +134,7 @@ CloudFormation do
     Route53_RecordSet(:DBClusterReaderRecord) {
       Condition(:EnableReader)
       HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-      Name FnJoin('', [ "#{external_parameters[:hostname_read_endpoint]}", '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
       Type 'CNAME'
       TTL '60'
       ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
@@ -143,7 +143,7 @@ CloudFormation do
 
   Route53_RecordSet(:DBHostRecord) {
     HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-    Name FnJoin('', [ "#{external_parameters[:hostname]}", '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    Name FnJoin('', [ external_parameters[:hostname], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
