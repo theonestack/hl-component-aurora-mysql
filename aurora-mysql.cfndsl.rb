@@ -72,9 +72,10 @@ CloudFormation do
   engine_version = external_parameters.fetch(:engine_version, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
 
+  # for serverless v2 the EngineMode property in the DBCluster is to be left unset
+
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
-    EngineMode external_parameters[:engine_mode]
     EngineVersion engine_version unless engine_version.nil?
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     if external_parameters[:engine_mode] == 'serverless'
