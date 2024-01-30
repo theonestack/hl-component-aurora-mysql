@@ -78,12 +78,11 @@ CloudFormation do
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
-    if external_parameters[:engine_mode] == 'serverless'
-      ScalingConfiguration({
-        AutoPause: Ref('AutoPause'),
+    if engine_mode == 'serverless'
+      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+      ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity'),
-        SecondsUntilAutoPause: Ref('SecondsUntilAutoPause')
+        MaxCapacity: Ref('MaxCapacity')
       })
     end
     DatabaseName db_name if !db_name.empty?
