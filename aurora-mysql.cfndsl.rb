@@ -97,7 +97,14 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
   }
 
-  if external_parameters[:engine_mode] == 'provisioned'
+  if engine_mode == 'serverless'
+    RDS_DBInstance(:ServerlessDBInstance) {
+      Engine 'aurora-postgresql'
+      DBInstanceClass 'db.serverless'
+      DBClusterIdentifier Ref(:DBCluster)
+    }
+
+  else
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
       Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
