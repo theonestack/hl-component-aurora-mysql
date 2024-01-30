@@ -17,10 +17,9 @@ CfhighlanderTemplate do
     end
 
     if engine_mode == 'serverless'
-      ComponentParam 'AutoPause', 'true', allowedValues: ['true', 'false']
       ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
       ComponentParam 'MinCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
-      ComponentParam 'SecondsUntilAutoPause', 3600
+      ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
     end
 
     ComponentParam 'KmsKeyId' if defined? kms_key_id

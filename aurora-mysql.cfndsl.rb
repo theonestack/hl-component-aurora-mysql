@@ -72,17 +72,17 @@ CloudFormation do
   engine_version = external_parameters.fetch(:engine_version, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
 
+  # for serverless v2 the EngineMode property in the DBCluster is to be left unset
+
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
-    EngineMode external_parameters[:engine_mode]
     EngineVersion engine_version unless engine_version.nil?
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
-    if external_parameters[:engine_mode] == 'serverless'
-      ScalingConfiguration({
-        AutoPause: Ref('AutoPause'),
+    if engine_mode == 'serverless'
+      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+      ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity'),
-        SecondsUntilAutoPause: Ref('SecondsUntilAutoPause')
+        MaxCapacity: Ref('MaxCapacity')
       })
     end
     DatabaseName db_name if !db_name.empty?
@@ -97,7 +97,14 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
   }
 
-  if external_parameters[:engine_mode] == 'provisioned'
+  if engine_mode == 'serverless'
+    RDS_DBInstance(:ServerlessDBInstance) {
+      Engine external_parameters[:engine]
+      DBInstanceClass 'db.serverless'
+      DBClusterIdentifier Ref(:DBCluster)
+    }
+
+  else
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
       Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
