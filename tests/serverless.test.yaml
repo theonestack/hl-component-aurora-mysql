@@ -1,9 +1,10 @@
 test_metadata:
   type: config
   name: aurora serverless
-  description: creates an aurora serverless cluster
+  description: creates an aurora serverless v2 cluster
 
 engine: aurora
 engine_mode: serverless
-family:  aurora5.6
+family: aurora-mysql8.0
+engine_version: 8.0.mysql_aurora.3.02.0
 storage_encrypted: true
