@@ -5,7 +5,7 @@ CloudFormation do
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
-
+  Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
 
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
@@ -95,6 +95,14 @@ CloudFormation do
     StorageEncrypted storage_encrypted
     KmsKeyId Ref('KmsKeyId') if kms
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
+
+    if (external_parameters[:log_exports].is_a?(Array) and external_parameters[:log_exports].size > 0)
+      EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', external_parameters[:log_exports], Ref('AWS::NoValue'))
+    end
+    if (external_parameters[:log_exports].is_a?(Hash) and external_parameters[:log_exports].keys[0].start_with?('Ref') and external_parameters[:log_exports].keys.size < 2)
+      EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', FnSplit(',',external_parameters[:log_exports]), Ref('AWS::NoValue'))
+    end
+
   }
 
   if engine_mode == 'serverless'

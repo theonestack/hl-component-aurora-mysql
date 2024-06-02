@@ -30,5 +30,7 @@ CfhighlanderTemplate do
     ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7
 
     ComponentParam 'NamespaceId' if defined? service_discovery
+
+    ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : '', isGlobal: true
   end
 end

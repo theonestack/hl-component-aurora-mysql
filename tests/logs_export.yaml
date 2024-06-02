@@ -1,0 +1,17 @@
+test_metadata:
+  type: config
+  name: logs exports
+  description: Set logs to be exported to CloudWatch (can be set as array in config or as string parameter in stack config file)
+
+#Can be used
+#For stack parameter file on remote repo
+log_exports:
+  Ref: LogsExports
+
+#Can be used
+#For local storing
+#log_exports:
+#  - audit
+#  - error
+#  - general
+#  - slowquery
