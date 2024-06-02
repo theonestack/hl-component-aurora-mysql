@@ -1,6 +1,7 @@
 CfhighlanderTemplate do
   Name 'aurora-mysql'
   DependsOn 'vpc'
+  DependsOn 'lib-iam'
 
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
@@ -31,6 +32,6 @@ CfhighlanderTemplate do
 
     ComponentParam 'NamespaceId' if defined? service_discovery
 
-    ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : '', isGlobal: true
+    ComponentParam 'EnableReplicaAutoScaling', 'false', isGlobal: true
   end
 end

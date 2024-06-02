@@ -5,7 +5,7 @@ CloudFormation do
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
-  Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
+  Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
 
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
@@ -95,14 +95,6 @@ CloudFormation do
     StorageEncrypted storage_encrypted
     KmsKeyId Ref('KmsKeyId') if kms
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
-
-    if (external_parameters[:log_exports].is_a?(Array) and external_parameters[:log_exports].size > 0)
-      EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', external_parameters[:log_exports], Ref('AWS::NoValue'))
-    end
-    if (external_parameters[:log_exports].is_a?(Hash) and external_parameters[:log_exports].keys[0].start_with?('Ref') and external_parameters[:log_exports].keys.size < 2)
-      EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', FnSplit(',',external_parameters[:log_exports]), Ref('AWS::NoValue'))
-    end
-
   }
 
   if engine_mode == 'serverless'
@@ -202,5 +194,78 @@ CloudFormation do
     Value(Ref(:DBCluster))
     Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-dbcluster-id")
   }
+
+  IAM_Role(:RDSReplicaAutoScaleRole) do
+    DependsOn [:DBCluster,:DBClusterInstanceReader]
+    Condition 'EnableReplicaAutoScaling'
+    AssumeRolePolicyDocument service_assume_role_policy('application-autoscaling')
+    Path '/'
+    Policies ([
+      PolicyName: FnSub("${EnvironmentName}-rds-replica-scaling"),
+      PolicyDocument: {
+        Statement: [
+          {
+            Effect: "Allow",
+            Action: "iam:CreateServiceLinkedRole",
+            Resource: FnSub("arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_RDSCluster"),
+            Condition: ({
+              StringLike: {
+                "iam:AWSServiceName":"rds.application-autoscaling.amazonaws.com"
+               }
+            })
+          },
+          {
+            Effect: "Allow",
+            Action: ['cloudwatch:DescribeAlarms','cloudwatch:PutMetricAlarm','cloudwatch:DeleteAlarms'],
+            Resource: "*"
+          }
+        ]
+    }])
+  end
+
+  scaling_policy = external_parameters.fetch(:scaling_policy, {})
+
+  if scaling_policy['up'].kind_of?(Hash)
+    scaling_policy['up'] = [scaling_policy['up']]
+  end
+
+  if scaling_policy['down'].kind_of?(Hash)
+    scaling_policy['down'] = [scaling_policy['down']]
+  end
+
+  if scaling_policy['target'].kind_of?(Hash)
+    scaling_policy['target'] = [scaling_policy['target']]
+  end
+
+  ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
+    DependsOn 'RDSReplicaAutoScaleRole'
+    Condition 'EnableReplicaAutoScaling'
+    MaxCapacity Ref(:Max)
+    MinCapacity Ref(:Min)
+    ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
+    RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
+    ScalableDimension "rds:cluster:ReadReplicaCount"
+    ServiceNamespace "rds"
+  end
+
+  scaling_policy['target'].each_with_index do |scale_target_policy, i|
+    logical_scaling_policy_name = "ServiceTargetTrackingPolicy" + (i > 0 ? "#{i+1}" : "")
+    policy_name = "target-tracking-policy" + (i > 0 ? "-#{i+1}" : "")
+    ApplicationAutoScaling_ScalingPolicy(logical_scaling_policy_name) do
+      DependsOn 'ServiceScalingTarget'
+      Condition 'EnableReplicaAutoScaling'
+      PolicyName FnJoin('-', [ Ref('EnvironmentName'), component_name, policy_name])
+      PolicyType 'TargetTrackingScaling'
+      ScalingTargetId Ref(:ServiceScalingTarget)
+      TargetTrackingScalingPolicyConfiguration({
+        TargetValue: scale_target_policy['target_value'].to_s,
+        ScaleInCooldown: scale_target_policy['scale_in_cooldown'].to_s,
+        ScaleOutCooldown: scale_target_policy['scale_out_cooldown'].to_s,
+        PredefinedMetricSpecification: {
+          PredefinedMetricType: scale_target_policy['metric_type'] || 'RDSReaderAverageCPUUtilization'
+        }
+      })
+    end
+  end unless scaling_policy['target'].nil?
 
 end
