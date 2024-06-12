@@ -240,8 +240,8 @@ CloudFormation do
   ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
     DependsOn 'RDSReplicaAutoScaleRole'
     Condition 'EnableReplicaAutoScaling'
-    MaxCapacity Ref(:Max)
-    MinCapacity Ref(:Min)
+    MaxCapacity Ref(:ScalableTargetMaxCapacity)
+    MinCapacity Ref(:ScalableTargetMinCapacity)
     ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
     RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
     ScalableDimension "rds:cluster:ReadReplicaCount"
