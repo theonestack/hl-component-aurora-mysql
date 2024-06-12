@@ -10,6 +10,8 @@ CfhighlanderTemplate do
     ComponentParam 'NetworkPrefix', '10', isGlobal: true
     ComponentParam 'DnsDomain'
     ComponentParam 'SnapshotID'
+    ComponentParam 'ScalableTargetMinCapacity'
+    ComponentParam 'ScalableTargetMaxCapacity'
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
