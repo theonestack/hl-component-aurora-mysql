@@ -1,6 +1,7 @@
 CfhighlanderTemplate do
   Name 'aurora-mysql'
   DependsOn 'vpc'
+  DependsOn 'lib-iam'
 
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
@@ -9,6 +10,8 @@ CfhighlanderTemplate do
     ComponentParam 'NetworkPrefix', '10', isGlobal: true
     ComponentParam 'DnsDomain'
     ComponentParam 'SnapshotID'
+    ComponentParam 'ScalableTargetMinCapacity'
+    ComponentParam 'ScalableTargetMaxCapacity'
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
@@ -30,5 +33,7 @@ CfhighlanderTemplate do
     ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7
 
     ComponentParam 'NamespaceId' if defined? service_discovery
+
+    ComponentParam 'EnableReplicaAutoScaling', 'false', isGlobal: true
   end
 end

@@ -1,0 +1,15 @@
+test_metadata:
+  type: config
+  name: replica scaling
+  description: replica scaling
+
+scaling_policy:
+  target:
+    - metric_type: RDSReaderAverageCPUUtilization
+      scale_in_cooldown: 180
+      scale_out_cooldown: 60
+      target_value: 70
+    - metric_type: RDSReaderAverageDatabaseConnections
+      scale_in_cooldown: 180
+      scale_out_cooldown: 60
+      target_value: 500
