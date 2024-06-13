@@ -35,5 +35,7 @@ CfhighlanderTemplate do
     ComponentParam 'NamespaceId' if defined? service_discovery
 
     ComponentParam 'EnableReplicaAutoScaling', 'false', isGlobal: true
+
+    ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : '', isGlobal: true
   end
 end
