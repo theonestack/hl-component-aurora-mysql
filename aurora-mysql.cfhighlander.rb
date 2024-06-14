@@ -36,6 +36,6 @@ CfhighlanderTemplate do
 
     ComponentParam 'EnableReplicaAutoScaling', 'false', isGlobal: true
 
-    ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : '', isGlobal: true
+    ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : ''
   end
 end
