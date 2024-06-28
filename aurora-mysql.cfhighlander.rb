@@ -37,5 +37,8 @@ CfhighlanderTemplate do
     ComponentParam 'EnableReplicaAutoScaling', 'false'
 
     ComponentParam 'EnableCloudwatchLogsExports', defined?(log_exports) ? log_exports : ''
+
+    ComponentParam 'EnableLocalWriteForwarding', 'false'
+
   end
 end
