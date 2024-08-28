@@ -80,11 +80,7 @@ CloudFormation do
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
     
-    if external_parameters[:engine_mode] == 'serverlessv2'
-      EngineMode 'provisioned'
-    else
-      EngineMode external_parameters[:engine_mode]
-    end
+    EngineMode(external_parameters[:engine_mode] == 'serverlessv2' ? 'provisioned' : external_parameters[:engine_mode])
 
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     
@@ -123,7 +119,6 @@ CloudFormation do
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
     }
-  end
 
   else
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
