@@ -1,6 +1,8 @@
 CloudFormation do
 
-  Description "#{external_parameters[:component_name]} - #{external_parameters[:component_version]}"
+  export = external_parameters.fetch(:export_name, external_parameters[:component_name])
+
+  Description "#{export} - #{external_parameters[:component_version]}"
 
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
@@ -26,7 +28,7 @@ CloudFormation do
     end
     Output(:SecretCredentials) {
       Value(Ref(:SecretCredentials))
-      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-Secret")
+      Export FnSub("${EnvironmentName}-#{export}-Secret")
     }
   end
 
@@ -49,7 +51,7 @@ CloudFormation do
 
   Output(:SecurityGroup) {
     Value(Ref(:SecurityGroup))
-    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-security-group")
+    Export FnSub("${EnvironmentName}-#{export}-security-group")
   }
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
@@ -200,13 +202,13 @@ CloudFormation do
 
     Output(:ServiceRegistry) {
       Value(Ref(:ServiceRegistry))
-      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-CloudMapService")
+      Export FnSub("${EnvironmentName}-#{export}-CloudMapService")
     }
   end
 
   Output(:DBClusterId) {
     Value(Ref(:DBCluster))
-    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-dbcluster-id")
+    Export FnSub("${EnvironmentName}-#{export}-dbcluster-id")
   }
 
   IAM_Role(:RDSReplicaAutoScaleRole) do
