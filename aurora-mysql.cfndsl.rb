@@ -213,7 +213,6 @@ CloudFormation do
 
   IAM_Role(:RDSReplicaAutoScaleRole) do
     Condition 'EnableReplicaAutoScaling'
-    DependsOn [:DBCluster,:DBClusterInstanceReader]
     AssumeRolePolicyDocument service_assume_role_policy('application-autoscaling')
     Path '/'
     Policies ([
