@@ -73,18 +73,22 @@ CloudFormation do
   instance_username = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', external_parameters[:master_login]['username_ssm_param'], ':1}}' ])
   instance_password = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', external_parameters[:master_login]['password_ssm_param'], ':1}}' ])
   engine_version = external_parameters.fetch(:engine_version, nil)
+  engine_mode = external_parameters.fetch(:engine_mode, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
-
-  # for serverless v2 the EngineMode property in the DBCluster is to be left unset
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
     
-    EngineMode external_parameters[:engine_mode]
+    if external_parameters[:engine_mode] == 'serverlessv2'
+      EngineMode 'provisioned'
+    else
+      EngineMode external_parameters[:engine_mode]
+    end
 
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
-    if engine_mode == 'serverless'
+    
+    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
@@ -113,12 +117,13 @@ CloudFormation do
     
   }
 
-  if engine_mode == 'serverless'
+  if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
     }
+  end
 
   else
     Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
