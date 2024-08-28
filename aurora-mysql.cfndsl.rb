@@ -84,8 +84,15 @@ CloudFormation do
 
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     
-    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
+    if engine_mode == 'serverless'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+      ServerlessV2ScalingConfiguration({
+        MinCapacity: Ref('MinCapacity'),
+        MaxCapacity: Ref('MaxCapacity')
+      })
+    end
+
+    if engine_mode == 'serverlessv2'
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
