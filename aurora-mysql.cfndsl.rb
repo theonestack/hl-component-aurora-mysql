@@ -8,6 +8,8 @@ CloudFormation do
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
 
+  Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
+  
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
@@ -80,7 +82,8 @@ CloudFormation do
     EngineVersion engine_version unless engine_version.nil?
     
     EngineMode external_parameters[:engine_mode]
-
+    EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, false)
+    
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     if engine_mode == 'serverless'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
