@@ -82,7 +82,7 @@ CloudFormation do
     EngineVersion engine_version unless engine_version.nil?
     
     EngineMode external_parameters[:engine_mode]
-    EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, false)
+    EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, Ref('AWS::NoValue'))
     
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     if engine_mode == 'serverless'
