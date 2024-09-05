@@ -15,7 +15,7 @@ CloudFormation do
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
 
   extra_tags = external_parameters.fetch(:extra_tags, {})
-  extra_tags.each { |key,value| tags << { Key: key, Value: value } }
+  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
 
   secrets_manager = external_parameters.fetch(:secret_username, false)
   if secrets_manager
