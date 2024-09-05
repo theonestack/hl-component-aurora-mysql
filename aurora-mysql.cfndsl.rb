@@ -125,6 +125,7 @@ CloudFormation do
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      Tags tags
     }
 
   else
