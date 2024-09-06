@@ -1,6 +1,8 @@
 CloudFormation do
 
-  Description "#{external_parameters[:component_name]} - #{external_parameters[:component_version]}"
+  export = external_parameters.fetch(:export_name, external_parameters[:component_name])
+
+  Description "#{export} - #{external_parameters[:component_version]}"
 
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
@@ -15,7 +17,7 @@ CloudFormation do
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
 
   extra_tags = external_parameters.fetch(:extra_tags, {})
-  extra_tags.each { |key,value| tags << { Key: key, Value: value } }
+  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
 
   secrets_manager = external_parameters.fetch(:secret_username, false)
   if secrets_manager
@@ -28,7 +30,7 @@ CloudFormation do
     end
     Output(:SecretCredentials) {
       Value(Ref(:SecretCredentials))
-      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-Secret")
+      Export FnSub("${EnvironmentName}-#{export}-Secret")
     }
   end
 
@@ -51,7 +53,7 @@ CloudFormation do
 
   Output(:SecurityGroup) {
     Value(Ref(:SecurityGroup))
-    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-security-group")
+    Export FnSub("${EnvironmentName}-#{export}-security-group")
   }
 
   RDS_DBSubnetGroup(:DBClusterSubnetGroup) {
@@ -73,20 +75,27 @@ CloudFormation do
   instance_username = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', external_parameters[:master_login]['username_ssm_param'], ':1}}' ])
   instance_password = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', external_parameters[:master_login]['password_ssm_param'], ':1}}' ])
   engine_version = external_parameters.fetch(:engine_version, nil)
+  engine_mode = external_parameters.fetch(:engine_mode, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
-
-  # for serverless v2 the EngineMode property in the DBCluster is to be left unset
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
     
-    EngineMode external_parameters[:engine_mode]
+    EngineMode(external_parameters[:engine_mode] == 'serverlessv2' ? 'provisioned' : external_parameters[:engine_mode])
     EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, Ref('AWS::NoValue'))
-    
+
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
+    
     if engine_mode == 'serverless'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+      ServerlessV2ScalingConfiguration({
+        MinCapacity: Ref('MinCapacity'),
+        MaxCapacity: Ref('MaxCapacity')
+      })
+    end
+
+    if engine_mode == 'serverlessv2'
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
@@ -114,11 +123,12 @@ CloudFormation do
     
   }
 
-  if engine_mode == 'serverless'
+  if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      Tags tags
     }
 
   else
@@ -203,17 +213,16 @@ CloudFormation do
 
     Output(:ServiceRegistry) {
       Value(Ref(:ServiceRegistry))
-      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-CloudMapService")
+      Export FnSub("${EnvironmentName}-#{export}-CloudMapService")
     }
   end
 
   Output(:DBClusterId) {
     Value(Ref(:DBCluster))
-    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-dbcluster-id")
+    Export FnSub("${EnvironmentName}-#{export}-dbcluster-id")
   }
 
   IAM_Role(:RDSReplicaAutoScaleRole) do
-    DependsOn [:DBCluster,:DBClusterInstanceReader]
     Condition 'EnableReplicaAutoScaling'
     AssumeRolePolicyDocument service_assume_role_policy('application-autoscaling')
     Path '/'
