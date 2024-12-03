@@ -96,6 +96,7 @@ CloudFormation do
     end
 
     if engine_mode == 'serverlessv2'
+      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
