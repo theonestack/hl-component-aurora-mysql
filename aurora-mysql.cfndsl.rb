@@ -168,8 +168,13 @@ CloudFormation do
 
     Route53_RecordSet(:DBClusterReaderRecord) {
       Condition(:EnableReader)
-      HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      if external_parameters[:dns_format]
+        HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
+        Name FnSub("#{external_parameters[:hostname_read_endpoint]}.#{external_parameters[:dns_format]}.")
+      else
+        HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+        Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      end
       Type 'CNAME'
       TTL '60'
       ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
@@ -177,8 +182,13 @@ CloudFormation do
   end
 
   Route53_RecordSet(:DBHostRecord) {
-    HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-    Name FnJoin('', [ external_parameters[:hostname], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    if external_parameters[:dns_format]
+      HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
+      Name FnSub("#{external_parameters[:hostname]}.#{external_parameters[:dns_format]}.")
+    else
+      HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    end
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
