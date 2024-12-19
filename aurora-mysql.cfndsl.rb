@@ -169,8 +169,8 @@ CloudFormation do
     Route53_RecordSet(:DBClusterReaderRecord) {
       Condition(:EnableReader)
       if external_parameters[:dns_format]
-        HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
-        Name FnSub("#{external_parameters[:hostname_read_endpoint]}.#{external_parameters[:dns_format]}.")
+        HostedZoneName FnJoin('', ["#{external_parameters[:dns_format]}", "."])
+        Name FnJoin('', ["#{external_parameters[:hostname_read_endpoint]}", ".", "#{external_parameters[:dns_format]}", "."])
       else
         HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
         Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
@@ -183,8 +183,8 @@ CloudFormation do
 
   Route53_RecordSet(:DBHostRecord) {
     if external_parameters[:dns_format]
-      HostedZoneName FnSub("#{external_parameters[:dns_format]}.")
-      Name FnSub("#{external_parameters[:hostname]}.#{external_parameters[:dns_format]}.")
+      HostedZoneName FnJoin('', ["#{external_parameters[:dns_format]}", "."])
+      Name FnJoin('', ["#{external_parameters[:hostname_read_endpoint]}", ".", "#{external_parameters[:dns_format]}", "."])
     else
       HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
       Name FnJoin('', [ external_parameters[:hostname], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
