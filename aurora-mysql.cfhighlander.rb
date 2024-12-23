@@ -20,7 +20,7 @@ CfhighlanderTemplate do
     end
 
     if engine_mode == 'serverless'
-      ComponentParam 'EnableReader', 'false
+      ComponentParam 'EnableReader', 'false'
       ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
       ComponentParam 'MinCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
       ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
