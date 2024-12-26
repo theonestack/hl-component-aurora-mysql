@@ -12,6 +12,7 @@ CfhighlanderTemplate do
     ComponentParam 'SnapshotID'
     ComponentParam 'ScalableTargetMinCapacity'
     ComponentParam 'ScalableTargetMaxCapacity'
+    ComponentParam 'EngineVersion', ''
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
@@ -19,9 +20,9 @@ CfhighlanderTemplate do
       ComponentParam 'EnableReader', 'false'
     end
 
-    if engine_mode == 'serverless'
-      ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
-      ComponentParam 'MinCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
+      ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
+      ComponentParam 'MinCapacity', 2, allowedValues: [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
       ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
     end
 

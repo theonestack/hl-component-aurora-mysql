@@ -7,9 +7,11 @@ CloudFormation do
   Condition("UseUsernameAndPassword", FnEquals(Ref(:SnapshotID), ''))
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
-  Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
-  Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
 
+  # Scale-in still does not work for Serverless. Only Scale-out does.
+  Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
+  
+  Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
   
   tags = []
@@ -87,7 +89,7 @@ CloudFormation do
 
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     
-    if engine_mode == 'serverless'
+    if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
@@ -95,13 +97,6 @@ CloudFormation do
       })
     end
 
-    if engine_mode == 'serverlessv2'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
-      ServerlessV2ScalingConfiguration({
-        MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity')
-      })
-    end
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
@@ -124,6 +119,7 @@ CloudFormation do
     
   }
 
+  Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
       Engine external_parameters[:engine]
@@ -132,8 +128,14 @@ CloudFormation do
       Tags tags
     }
 
+    RDS_DBInstance(:ServerlessDBInstanceReader) {
+      Condition(:EnableReader)
+      Engine external_parameters[:engine]
+      DBInstanceClass 'db.serverless'
+      DBClusterIdentifier Ref(:DBCluster)
+      Tags tags
+    }
   else
-    Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
       Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
       Family external_parameters[:family]
@@ -165,20 +167,6 @@ CloudFormation do
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
     }
-
-    Route53_RecordSet(:DBClusterReaderRecord) {
-      Condition(:EnableReader)
-      if external_parameters[:dns_format]
-        HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
-        Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
-      else
-        HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-        Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-      end
-      Type 'CNAME'
-      TTL '60'
-      ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
-    }
   end
 
   Route53_RecordSet(:DBHostRecord) {
@@ -192,6 +180,20 @@ CloudFormation do
     Type 'CNAME'
     TTL '60'
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
+  }
+
+  Route53_RecordSet(:DBClusterReaderRecord) {
+    Condition(:EnableReader)
+    if external_parameters[:dns_format]
+      HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
+      Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
+    else
+      HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    end
+    Type 'CNAME'
+    TTL '60'
+    ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
   }
 
   registry = {}
@@ -277,8 +279,8 @@ CloudFormation do
   ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
     DependsOn 'RDSReplicaAutoScaleRole'
     Condition 'EnableReplicaAutoScaling'
-    MaxCapacity Ref(:ScalableTargetMaxCapacity)
-    MinCapacity Ref(:ScalableTargetMinCapacity)
+    MaxCapacity FnJoin('', ['0', Ref(:ScalableTargetMaxCapacity)]) # Ref makes a String. The lead zero does the trick: CloudFormation parse it as Number.
+    MinCapacity FnJoin('', ['0', Ref(:ScalableTargetMinCapacity)]) # Ref makes a String. The lead zero does the trick: CloudFormation parse it as Number.
     ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
     RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
     ScalableDimension "rds:cluster:ReadReplicaCount"
