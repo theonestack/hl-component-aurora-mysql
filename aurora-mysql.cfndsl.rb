@@ -8,6 +8,8 @@ CloudFormation do
   Condition("UseSnapshotID", FnNot(FnEquals(Ref(:SnapshotID), '')))
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
 
+  # This is not in terms of Serverless V2 ACU but in terms of AutoScaling instances with TargetTracking policies.
+  # I.e. when you get the number of replicas more than one. Who knows - sometimes it makes sense.
   # Scale-in still does not work for Serverless. Only Scale-out does.
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   
