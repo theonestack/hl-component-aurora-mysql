@@ -83,10 +83,8 @@ CloudFormation do
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
-    
     EngineMode(external_parameters[:engine_mode] == 'serverlessv2' ? 'provisioned' : external_parameters[:engine_mode])
     EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, Ref('AWS::NoValue'))
-
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
     
     if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
@@ -105,6 +103,7 @@ CloudFormation do
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted
+    StorageType Ref(:StorageType)
     KmsKeyId Ref('KmsKeyId') if kms
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
 
