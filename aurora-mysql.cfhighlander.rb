@@ -14,19 +14,18 @@ CfhighlanderTemplate do
     ComponentParam 'ScalableTargetMaxCapacity'
     ComponentParam 'EngineVersion'
     ComponentParam 'StorageEncrypted', false
-    
+    ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
+
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
       ComponentParam 'ReaderInstanceType'
       ComponentParam 'EnableReader', 'false'
-      ComponentParam 'StorageType', 'io1', allowedValues: ['io1', 'io2', 'gp3']
     end
 
     if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
       ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
       ComponentParam 'MinCapacity', 2, allowedValues: [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
       ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
-      ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
     end
 
     ComponentParam 'KmsKeyId' if defined? kms_key_id
