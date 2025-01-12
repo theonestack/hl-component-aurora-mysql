@@ -88,9 +88,9 @@ CloudFormation do
     EngineMode(external_parameters[:engine_mode] == 'serverlessv2' ? 'provisioned' : external_parameters[:engine_mode])
     EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, Ref('AWS::NoValue'))
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
-    
+    EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+
     if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
