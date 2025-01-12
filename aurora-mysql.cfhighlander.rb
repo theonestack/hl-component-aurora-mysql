@@ -15,11 +15,11 @@ CfhighlanderTemplate do
     ComponentParam 'EngineVersion'
     ComponentParam 'StorageEncrypted', false
     ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
+    ComponentParam 'EnableReader', 'false'
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
-      ComponentParam 'ReaderInstanceType'
-      ComponentParam 'EnableReader', 'false'
+      ComponentParam 'ReaderInstanceType'      
     end
 
     if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
