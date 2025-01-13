@@ -134,6 +134,7 @@ CloudFormation do
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags
     }
   else
@@ -166,6 +167,7 @@ CloudFormation do
       DBInstanceClass Ref(:ReaderInstanceType)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
     }
   end
