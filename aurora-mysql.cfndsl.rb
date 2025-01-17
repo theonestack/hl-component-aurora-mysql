@@ -16,6 +16,9 @@ CloudFormation do
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
   
+  Condition("EnableDatabaseInsights", FnAnd([FnNot(FnEquals(Ref(:DatabaseInsightsMode), '')), FnEquals(Ref(:EnablePerformanceInsights), 'true')]))
+  Condition("EnableDatabaseInsightsAdvanced", FnAnd([FnEquals(Ref(:DatabaseInsightsMode), 'advanced'), FnEquals(Ref(:EnablePerformanceInsights), 'true')]))
+
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
@@ -97,6 +100,14 @@ CloudFormation do
       })
     end
 
+    PerformanceInsightsEnabled FnIf('EnablePerformanceInsights', 'true', 'false')
+    DatabaseInsightsMode FnIf('EnableDatabaseInsights',
+                               FnIf('EnableDatabaseInsightsAdvanced', 'advanced', 'standard'),
+                               FnIf('EnablePerformanceInsights', Ref('AWS::NoValue'), 'standard'))
+    PerformanceInsightsRetentionPeriod  FnIf('EnablePerformanceInsights',
+                                              FnIf('EnableDatabaseInsightsAdvanced', 465, Ref('PerformanceInsightsRetentionPeriod')),
+                                              Ref('AWS::NoValue'))
+
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
@@ -117,7 +128,6 @@ CloudFormation do
         EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', FnSplit(',',external_parameters[:log_exports]), Ref('AWS::NoValue'))
       end
     end
-    
   }
 
   Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
