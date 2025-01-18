@@ -84,6 +84,7 @@ CloudFormation do
   engine_version = external_parameters.fetch(:engine_version, nil)
   engine_mode = external_parameters.fetch(:engine_mode, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
+  backtrack_window = external_parameters.fetch(:backtrack_window, nil)
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
@@ -107,6 +108,11 @@ CloudFormation do
     PerformanceInsightsRetentionPeriod  FnIf('EnablePerformanceInsights',
                                               FnIf('EnableDatabaseInsightsAdvanced', 465, Ref('PerformanceInsightsRetentionPeriod')),
                                               Ref('AWS::NoValue'))
+    
+    # Basically the same as `BacktrackWindow = 0`
+    if ((not backtrack_window.nil?) and (backtrack_window != 0))
+      BacktrackWindow backtrack_window
+    end
 
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
