@@ -277,8 +277,8 @@ CloudFormation do
   ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
     DependsOn 'RDSReplicaAutoScaleRole'
     Condition 'EnableReplicaAutoScaling'
-    MaxCapacity FnJoin('', ['0', Ref(:ScalableTargetMaxCapacity)]) # Ref makes a String. The lead zero does the trick: CloudFormation parses it as a Number.
-    MinCapacity FnJoin('', ['0', Ref(:ScalableTargetMinCapacity)]) # Ref makes a String. The lead zero does the trick: CloudFormation parses it as a Number.
+    MaxCapacity FnJoin('', ['0', Ref(:ScalableTargetMaxCapacity)])
+    MinCapacity FnJoin('', ['0', Ref(:ScalableTargetMinCapacity)])
     ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
     RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
     ScalableDimension "rds:cluster:ReadReplicaCount"
