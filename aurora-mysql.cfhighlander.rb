@@ -13,6 +13,7 @@ CfhighlanderTemplate do
     ComponentParam 'ScalableTargetMinCapacity'
     ComponentParam 'ScalableTargetMaxCapacity'
     ComponentParam 'EngineVersion'
+    ComponentParam 'StorageEncrypted', false
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
