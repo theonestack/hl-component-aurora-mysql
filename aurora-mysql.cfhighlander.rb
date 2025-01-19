@@ -16,11 +16,12 @@ CfhighlanderTemplate do
     ComponentParam 'StorageEncrypted', false
     ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
     ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
+    ComponentParam 'EnableReader', 'false'
+    ComponentParam 'ReaderPromotionTier', 1, allowedValues: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
       ComponentParam 'ReaderInstanceType'
-      ComponentParam 'EnableReader', 'false'
     end
 
     if engine_mode == 'serverless' || engine_mode == 'serverlessv2'

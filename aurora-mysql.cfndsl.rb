@@ -10,6 +10,7 @@ CloudFormation do
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
+  Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
   
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
@@ -129,8 +130,15 @@ CloudFormation do
       Tags tags
     }
 
+    RDS_DBInstance(:ServerlessDBInstanceReader) {
+      Condition(:EnableReader)
+      Engine external_parameters[:engine]
+      DBInstanceClass 'db.serverless'
+      DBClusterIdentifier Ref(:DBCluster)
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
+      Tags tags
+    }
   else
-    Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
     RDS_DBParameterGroup(:DBInstanceParameterGroup) {
       Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
       Family external_parameters[:family]
@@ -160,21 +168,8 @@ CloudFormation do
       DBInstanceClass Ref(:ReaderInstanceType)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
-    }
-
-    Route53_RecordSet(:DBClusterReaderRecord) {
-      Condition(:EnableReader)
-      if external_parameters[:dns_format]
-        HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
-        Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
-      else
-        HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-        Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-      end
-      Type 'CNAME'
-      TTL '60'
-      ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
     }
   end
 
@@ -191,6 +186,20 @@ CloudFormation do
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
   }
 
+  Route53_RecordSet(:DBClusterReaderRecord) {
+    Condition(:EnableReader)
+    if external_parameters[:dns_format]
+      HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
+      Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
+    else
+      HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    end
+    Type 'CNAME'
+    TTL '60'
+    ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
+  }
+  
   registry = {}
   service_discovery = external_parameters.fetch(:service_discovery, {})
 
