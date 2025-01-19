@@ -90,7 +90,7 @@ CloudFormation do
       BacktrackWindow backtrack_window
     end
 
-    if engine_mode == 'serverless'
+    if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
       EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
@@ -98,13 +98,6 @@ CloudFormation do
       })
     end
 
-    if engine_mode == 'serverlessv2'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
-      ServerlessV2ScalingConfiguration({
-        MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity')
-      })
-    end
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
