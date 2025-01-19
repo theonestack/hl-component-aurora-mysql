@@ -14,6 +14,7 @@ CfhighlanderTemplate do
     ComponentParam 'ScalableTargetMaxCapacity'
     ComponentParam 'EngineVersion'
     ComponentParam 'StorageEncrypted', false
+    ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'

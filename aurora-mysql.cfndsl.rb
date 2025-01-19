@@ -108,6 +108,7 @@ CloudFormation do
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted
+    StorageType Ref(:StorageType)
     KmsKeyId Ref('KmsKeyId') if kms
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
 
