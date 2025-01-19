@@ -89,9 +89,9 @@ CloudFormation do
     if ((not backtrack_window.nil?) and (backtrack_window != 0))
       BacktrackWindow backtrack_window
     end
+    EnableHttpEndpoint Ref(:EnableHttpEndpoint)
 
     if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
