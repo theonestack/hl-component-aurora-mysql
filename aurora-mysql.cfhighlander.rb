@@ -12,6 +12,7 @@ CfhighlanderTemplate do
     ComponentParam 'SnapshotID'
     ComponentParam 'ScalableTargetMinCapacity'
     ComponentParam 'ScalableTargetMaxCapacity'
+    ComponentParam 'EngineVersion'
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
