@@ -9,7 +9,6 @@ CloudFormation do
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
-
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
   
   tags = []
@@ -33,7 +32,6 @@ CloudFormation do
       Export FnSub("${EnvironmentName}-#{export}-Secret")
     }
   end
-
 
   security_group = external_parameters.fetch(:security_group, [])
   ip_blocks = external_parameters.fetch(:ip_blocks, [])
@@ -277,8 +275,8 @@ CloudFormation do
   ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
     DependsOn 'RDSReplicaAutoScaleRole'
     Condition 'EnableReplicaAutoScaling'
-    MaxCapacity Ref(:ScalableTargetMaxCapacity)
-    MinCapacity Ref(:ScalableTargetMinCapacity)
+    MaxCapacity FnJoin('', ['0', Ref(:ScalableTargetMaxCapacity)])
+    MinCapacity FnJoin('', ['0', Ref(:ScalableTargetMinCapacity)])
     ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
     RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
     ScalableDimension "rds:cluster:ReadReplicaCount"
