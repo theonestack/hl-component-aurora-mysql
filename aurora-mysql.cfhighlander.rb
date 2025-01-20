@@ -34,8 +34,8 @@ CfhighlanderTemplate do
     ComponentParam 'SubnetIds', type: 'CommaDelimitedList'
 
     ComponentParam 'EnablePerformanceInsights', defined?(performance_insights) ? performance_insights : false
-    ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7
-
+    ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7,
+                    allowedValues: [7, 31, 62, 93, 124, 155, 186, 217, 248, 279, 310, 341, 372, 403, 434, 465, 496, 527, 558, 589, 620, 651, 682, 713, 731]
     ComponentParam 'NamespaceId' if defined? service_discovery
 
     ComponentParam 'EnableReplicaAutoScaling', 'false'

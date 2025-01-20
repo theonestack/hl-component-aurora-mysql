@@ -119,7 +119,6 @@ CloudFormation do
         EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', FnSplit(',',external_parameters[:log_exports]), Ref('AWS::NoValue'))
       end
     end
-    
   }
 
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
@@ -127,6 +126,8 @@ CloudFormation do
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags
     }
 
@@ -135,6 +136,8 @@ CloudFormation do
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags
     }
