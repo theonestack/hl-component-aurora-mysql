@@ -78,6 +78,13 @@ CloudFormation do
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
   backtrack_window = external_parameters.fetch(:backtrack_window, nil)
 
+  RDS_DBParameterGroup(:DBInstanceParameterGroup) {
+    Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
+    Family external_parameters[:family]
+    Parameters external_parameters[:instance_parameters]
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
+  }
+
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
@@ -123,6 +130,7 @@ CloudFormation do
 
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
@@ -133,6 +141,7 @@ CloudFormation do
 
     RDS_DBInstance(:ServerlessDBInstanceReader) {
       Condition(:EnableReader)
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
@@ -142,13 +151,6 @@ CloudFormation do
       Tags tags
     }
   else
-    RDS_DBParameterGroup(:DBInstanceParameterGroup) {
-      Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
-      Family external_parameters[:family]
-      Parameters external_parameters[:instance_parameters]
-      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
-    }
-
     RDS_DBInstance(:DBClusterInstanceWriter) {
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
