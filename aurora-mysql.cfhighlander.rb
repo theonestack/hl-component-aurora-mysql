@@ -12,17 +12,22 @@ CfhighlanderTemplate do
     ComponentParam 'SnapshotID'
     ComponentParam 'ScalableTargetMinCapacity'
     ComponentParam 'ScalableTargetMaxCapacity'
+    ComponentParam 'EngineVersion'
+    ComponentParam 'StorageEncrypted', false
+    ComponentParam 'StorageType', 'aurora', allowedValues: ['aurora', 'aurora-iopt1']
+    ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
+    ComponentParam 'EnableReader', 'false'
+    ComponentParam 'ReaderPromotionTier', 1, allowedValues: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    ComponentParam 'BacktrackWindow', 0
 
     if engine_mode == 'provisioned'
       ComponentParam 'WriterInstanceType'
       ComponentParam 'ReaderInstanceType'
-      ComponentParam 'EnableReader', 'false'
     end
 
-    if engine_mode == 'serverless'
-      ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
-      ComponentParam 'MinCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 256]
-      ComponentParam 'EnableHttpEndpoint', 'false', allowedValues: ['true', 'false']
+    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
+      ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
+      ComponentParam 'MinCapacity', 2, allowedValues: [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
     end
 
     ComponentParam 'KmsKeyId' if defined? kms_key_id
@@ -30,8 +35,8 @@ CfhighlanderTemplate do
     ComponentParam 'SubnetIds', type: 'CommaDelimitedList'
 
     ComponentParam 'EnablePerformanceInsights', defined?(performance_insights) ? performance_insights : false
-    ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7
-
+    ComponentParam 'PerformanceInsightsRetentionPeriod', defined?(performance_insights) && defined?(insights_retention)  ? insights_retention.to_i : 7,
+                    allowedValues: [7, 31, 62, 93, 124, 155, 186, 217, 248, 279, 310, 341, 372, 403, 434, 465, 496, 527, 558, 589, 620, 651, 682, 713, 731]
     ComponentParam 'NamespaceId' if defined? service_discovery
 
     ComponentParam 'EnableReplicaAutoScaling', 'false'

@@ -9,8 +9,8 @@ CloudFormation do
   Condition("EnablePerformanceInsights", FnEquals(Ref(:EnablePerformanceInsights), 'true'))
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
-
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
+  Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
   
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
@@ -33,7 +33,6 @@ CloudFormation do
       Export FnSub("${EnvironmentName}-#{export}-Secret")
     }
   end
-
 
   security_group = external_parameters.fetch(:security_group, [])
   ip_blocks = external_parameters.fetch(:ip_blocks, [])
@@ -77,6 +76,14 @@ CloudFormation do
   engine_version = external_parameters.fetch(:engine_version, nil)
   engine_mode = external_parameters.fetch(:engine_mode, nil)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
+  backtrack_window = external_parameters.fetch(:backtrack_window, nil)
+
+  RDS_DBParameterGroup(:DBInstanceParameterGroup) {
+    Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
+    Family external_parameters[:family]
+    Parameters external_parameters[:instance_parameters]
+    Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
+  }
 
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
@@ -86,22 +93,19 @@ CloudFormation do
     EnableLocalWriteForwarding FnIf('EnableLocalWriteForwarding', true, Ref('AWS::NoValue'))
 
     PreferredMaintenanceWindow maintenance_window unless maintenance_window.nil?
-    
-    if engine_mode == 'serverless'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+    # Basically the same as `BacktrackWindow = 0`
+    if ((not backtrack_window.nil?) and (backtrack_window != 0))
+      BacktrackWindow backtrack_window
+    end
+    EnableHttpEndpoint Ref(:EnableHttpEndpoint)
+
+    if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
       ServerlessV2ScalingConfiguration({
         MinCapacity: Ref('MinCapacity'),
         MaxCapacity: Ref('MaxCapacity')
       })
     end
 
-    if engine_mode == 'serverlessv2'
-      EnableHttpEndpoint Ref(:EnableHttpEndpoint)
-      ServerlessV2ScalingConfiguration({
-        MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity')
-      })
-    end
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
     SnapshotIdentifier FnIf('UseSnapshotID',Ref(:SnapshotID), Ref('AWS::NoValue'))
@@ -110,6 +114,7 @@ CloudFormation do
     MasterUsername  FnIf('UseUsernameAndPassword', instance_username, Ref('AWS::NoValue'))
     MasterUserPassword  FnIf('UseUsernameAndPassword', instance_password, Ref('AWS::NoValue'))
     StorageEncrypted storage_encrypted
+    StorageType Ref(:StorageType)
     KmsKeyId Ref('KmsKeyId') if kms
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'cluster' ])}]
 
@@ -121,26 +126,31 @@ CloudFormation do
         EnableCloudwatchLogsExports FnIf('EnableCloudwatchLogsExports', FnSplit(',',external_parameters[:log_exports]), Ref('AWS::NoValue'))
       end
     end
-    
   }
 
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags
     }
 
-  else
-    Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
-    RDS_DBParameterGroup(:DBInstanceParameterGroup) {
-      Description FnJoin(' ', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance parameter group' ])
-      Family external_parameters[:family]
-      Parameters external_parameters[:instance_parameters]
-      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
+    RDS_DBInstance(:ServerlessDBInstanceReader) {
+      Condition(:EnableReader)
+      DBParameterGroupName Ref(:DBInstanceParameterGroup)
+      Engine external_parameters[:engine]
+      DBInstanceClass 'db.serverless'
+      DBClusterIdentifier Ref(:DBCluster)
+      EnablePerformanceInsights Ref('EnablePerformanceInsights')
+      PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
+      Tags tags
     }
-
+  else
     RDS_DBInstance(:DBClusterInstanceWriter) {
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
@@ -163,21 +173,8 @@ CloudFormation do
       DBInstanceClass Ref(:ReaderInstanceType)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
-    }
-
-    Route53_RecordSet(:DBClusterReaderRecord) {
-      Condition(:EnableReader)
-      if external_parameters[:dns_format]
-        HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
-        Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
-      else
-        HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-        Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
-      end
-      Type 'CNAME'
-      TTL '60'
-      ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
     }
   end
 
@@ -194,6 +191,20 @@ CloudFormation do
     ResourceRecords [ FnGetAtt('DBCluster','Endpoint.Address') ]
   }
 
+  Route53_RecordSet(:DBClusterReaderRecord) {
+    Condition(:EnableReader)
+    if external_parameters[:dns_format]
+      HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
+      Name FnJoin('', [external_parameters[:hostname_read_endpoint], ".", external_parameters[:dns_format], "."])
+    else
+      HostedZoneName FnJoin('', [ Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+      Name FnJoin('', [ external_parameters[:hostname_read_endpoint], '.', Ref(:EnvironmentName), '.', Ref(:DnsDomain), '.' ])
+    end
+    Type 'CNAME'
+    TTL '60'
+    ResourceRecords [ FnGetAtt('DBCluster','ReadEndpoint.Address') ]
+  }
+  
   registry = {}
   service_discovery = external_parameters.fetch(:service_discovery, {})
 
@@ -277,8 +288,8 @@ CloudFormation do
   ApplicationAutoScaling_ScalableTarget(:ServiceScalingTarget) do
     DependsOn 'RDSReplicaAutoScaleRole'
     Condition 'EnableReplicaAutoScaling'
-    MaxCapacity Ref(:ScalableTargetMaxCapacity)
-    MinCapacity Ref(:ScalableTargetMinCapacity)
+    MaxCapacity FnJoin('', ['0', Ref(:ScalableTargetMaxCapacity)])
+    MinCapacity FnJoin('', ['0', Ref(:ScalableTargetMinCapacity)])
     ResourceId FnJoin(':',["cluster",Ref(:DBCluster)])
     RoleARN FnGetAtt(:RDSReplicaAutoScaleRole,:Arn)
     ScalableDimension "rds:cluster:ReadReplicaCount"
