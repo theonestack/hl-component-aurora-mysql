@@ -10,6 +10,7 @@ CloudFormation do
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
+  Condition("EnableWriter", FnEquals(Ref("EnableWriter"), 'true'))
   Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
   
   tags = []
@@ -130,6 +131,7 @@ CloudFormation do
 
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
+      Condition(:EnableWriter)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBInstanceClass 'db.serverless'
@@ -179,6 +181,7 @@ CloudFormation do
   end
 
   Route53_RecordSet(:DBHostRecord) {
+    Condition(:EnableWriter)
     if external_parameters[:dns_format]
       HostedZoneName FnJoin('', [external_parameters[:dns_format], "."])
       Name FnJoin('', [external_parameters[:hostname], ".", external_parameters[:dns_format], "."])
