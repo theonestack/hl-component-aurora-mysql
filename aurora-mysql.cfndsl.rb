@@ -138,11 +138,7 @@ CloudFormation do
     PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
     PubliclyAccessible 'false'
-    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
-      DBInstanceClass 'db.serverless'
-    else
-      DBInstanceClass Ref(:WriterInstanceType)
-    end
+    DBInstanceClass Ref(:WriterInstanceType)
   }
 
   RDS_DBInstance(:DBClusterInstanceReader) {
@@ -156,11 +152,7 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
     PubliclyAccessible 'false'
     PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
-    if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
-      DBInstanceClass 'db.serverless'
-    else
-      DBInstanceClass Ref(:ReaderInstanceType)
-    end
+    DBInstanceClass Ref(:ReaderInstanceType)
   }
 
   Route53_RecordSet(:DBHostRecord) {
