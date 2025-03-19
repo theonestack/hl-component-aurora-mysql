@@ -20,11 +20,6 @@ CfhighlanderTemplate do
     ComponentParam 'ReaderPromotionTier', 1, allowedValues: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
     ComponentParam 'BacktrackWindow', 0
 
-    if engine_mode == 'provisioned'
-      ComponentParam 'WriterInstanceType'
-      ComponentParam 'ReaderInstanceType'
-    end
-
     if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
       ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
       ComponentParam 'MinCapacity', 2, allowedValues: [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
