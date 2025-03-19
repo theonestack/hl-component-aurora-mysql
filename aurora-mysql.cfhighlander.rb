@@ -24,7 +24,8 @@ CfhighlanderTemplate do
       ComponentParam 'MaxCapacity', 2, allowedValues: [1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
       ComponentParam 'MinCapacity', 2, allowedValues: [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 192, 256]
     end
-
+    ComponentParam 'WriterInstanceType'
+    ComponentParam 'ReaderInstanceType'
     ComponentParam 'KmsKeyId' if defined? kms_key_id
     ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
     ComponentParam 'SubnetIds', type: 'CommaDelimitedList'
