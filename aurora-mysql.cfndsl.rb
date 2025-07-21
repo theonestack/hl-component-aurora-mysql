@@ -10,8 +10,18 @@ CloudFormation do
   Condition("EnableReplicaAutoScaling", FnAnd([FnEquals(Ref(:EnableReplicaAutoScaling), 'true'), FnEquals(Ref(:EnableReader), 'true')]))
   Condition("EnableCloudwatchLogsExports", FnNot(FnEquals(Ref(:EnableCloudwatchLogsExports), '')))
   Condition("EnableLocalWriteForwarding", FnEquals(Ref(:EnableLocalWriteForwarding), 'true'))
-  Condition("EnableReader", FnEquals(Ref("EnableReader"), 'true'))
+  Condition("EnableReader", FnEquals(Ref(:EnableReader), 'true'))
   
+  Condition("IsWriterServerless", FnEquals(Ref(:WriterInstanceType), 'db.serverless'))
+  Output('IsWriterServerless') { 
+    Value( FnIf(:IsWriterServerless, true, false) ) 
+  }
+
+  Condition("IsReaderServerless", FnEquals(Ref(:ReaderInstanceType), 'db.serverless'))
+  Output('IsReaderServerless') { 
+    Value( FnIf(:IsReaderServerless, true, false) ) 
+  }
+
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
@@ -74,7 +84,7 @@ CloudFormation do
   instance_username = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:username}}' ]) : FnJoin('', [ '{{resolve:ssm:', external_parameters[:master_login]['username_ssm_param'], ':1}}' ])
   instance_password = secrets_manager ? FnJoin('', [ '{{resolve:secretsmanager:', Ref(:SecretCredentials), ':SecretString:password}}' ]) : FnJoin('', [ '{{resolve:ssm-secure:', external_parameters[:master_login]['password_ssm_param'], ':1}}' ])
   engine_version = external_parameters.fetch(:engine_version, nil)
-  engine_mode = external_parameters.fetch(:engine_mode, nil)
+  engine_mode = external_parameters.fetch(:engine_mode, 'provisioned')
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
   backtrack_window = external_parameters.fetch(:backtrack_window, nil)
 
@@ -99,12 +109,7 @@ CloudFormation do
     end
     EnableHttpEndpoint Ref(:EnableHttpEndpoint)
 
-    if engine_mode == 'serverless' ||  engine_mode == 'serverlessv2'
-      ServerlessV2ScalingConfiguration({
-        MinCapacity: Ref('MinCapacity'),
-        MaxCapacity: Ref('MaxCapacity')
-      })
-    end
+    ServerlessV2ScalingConfiguration FnIf(:IsWriterServerless, ({ MinCapacity: Ref('MinCapacity'), MaxCapacity: Ref('MaxCapacity') }), Ref('AWS::NoValue'))
 
     DatabaseName db_name if !db_name.empty?
     DBClusterParameterGroupName Ref(:DBClusterParameterGroup)
@@ -130,51 +135,55 @@ CloudFormation do
 
   if engine_mode == 'serverless' || engine_mode == 'serverlessv2'
     RDS_DBInstance(:ServerlessDBInstance) {
+      DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
-      DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
-      Tags tags
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
+      PubliclyAccessible 'false'
+      DBInstanceClass FnIf(:IsWriterServerless, 'db.serverless', Ref(:WriterInstanceType))
     }
 
     RDS_DBInstance(:ServerlessDBInstanceReader) {
       Condition(:EnableReader)
+      DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
-      DBInstanceClass 'db.serverless'
       DBClusterIdentifier Ref(:DBCluster)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
+      Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
+      PubliclyAccessible 'false'
+      DBInstanceClass FnIf(:IsWriterServerless, 'db.serverless', Ref(:ReaderInstanceType))
       PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
-      Tags tags
     }
   else
     RDS_DBInstance(:DBClusterInstanceWriter) {
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
-      DBClusterIdentifier Ref(:DBCluster)
       Engine external_parameters[:engine]
-      PubliclyAccessible 'false'
-      DBInstanceClass Ref(:WriterInstanceType)
+      DBClusterIdentifier Ref(:DBCluster)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
+      PubliclyAccessible 'false'
+      DBInstanceClass FnIf(:IsWriterServerless, 'db.serverless', Ref(:WriterInstanceType))
     }
 
     RDS_DBInstance(:DBClusterInstanceReader) {
       Condition(:EnableReader)
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
-      DBClusterIdentifier Ref(:DBCluster)
       Engine external_parameters[:engine]
-      PubliclyAccessible 'false'
-      DBInstanceClass Ref(:ReaderInstanceType)
+      DBClusterIdentifier Ref(:DBCluster)
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
-      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
+      PubliclyAccessible 'false'
+      DBInstanceClass FnIf(:IsWriterServerless, 'db.serverless', Ref(:ReaderInstanceType))
+      PromotionTier FnJoin('', ['0', Ref(:ReaderPromotionTier)])
     }
   end
 
