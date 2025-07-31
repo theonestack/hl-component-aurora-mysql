@@ -25,9 +25,10 @@ CloudFormation do
   tags = []
   tags << { Key: 'Environment', Value: Ref(:EnvironmentName) }
   tags << { Key: 'EnvironmentType', Value: Ref(:EnvironmentType) }
-
+  
   extra_tags = external_parameters.fetch(:extra_tags, {})
   extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
+  minor_upgrade = external_parameters.fetch(:minor_upgrade, nil)
 
   secrets_manager = external_parameters.fetch(:secret_username, false)
   if secrets_manager
@@ -95,6 +96,8 @@ CloudFormation do
     Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'instance-parameter-group' ])}]
   }
 
+  
+
   RDS_DBCluster(:DBCluster) {
     Engine external_parameters[:engine]
     EngineVersion engine_version unless engine_version.nil?
@@ -139,6 +142,7 @@ CloudFormation do
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil?
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
@@ -152,6 +156,7 @@ CloudFormation do
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil?
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
@@ -165,6 +170,7 @@ CloudFormation do
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil?
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'writer-instance' ])}]
@@ -178,6 +184,7 @@ CloudFormation do
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       Engine external_parameters[:engine]
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil? 
       EnablePerformanceInsights Ref('EnablePerformanceInsights')
       PerformanceInsightsRetentionPeriod FnIf('EnablePerformanceInsights', Ref('PerformanceInsightsRetentionPeriod'), Ref('AWS::NoValue'))
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), external_parameters[:component_name], 'reader-instance' ])}]
