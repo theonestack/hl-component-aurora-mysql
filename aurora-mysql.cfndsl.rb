@@ -89,11 +89,15 @@ CloudFormation do
       Parameters instance_parameters if defined? instance_parameters
       Tags tags + [{ Key: 'Name', Value: FnJoin('-', [ Ref(:EnvironmentName), component_name, 'instance-parameter-group' ])}]
     }
+    
+    minor_upgrade = external_parameters.fetch(:minor_upgrade, nil)
+
 
     RDS_DBInstance(:DBClusterInstanceWriter) {
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil?
       Engine engine
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:WriterInstanceType)
@@ -105,6 +109,7 @@ CloudFormation do
       DBSubnetGroupName Ref(:DBClusterSubnetGroup)
       DBParameterGroupName Ref(:DBInstanceParameterGroup)
       DBClusterIdentifier Ref(:DBCluster)
+      AutoMinorVersionUpgrade minor_upgrade unless minor_upgrade.nil?
       Engine engine
       PubliclyAccessible 'false'
       DBInstanceClass Ref(:ReaderInstanceType)
